@@ -62,21 +62,24 @@ export async function signInWithGoogle() {
 
   // Determine the correct redirect URL based on environment
   const getBaseUrl = () => {
-    // If NEXT_PUBLIC_SITE_URL is set, use it
-    if (process.env.NEXT_PUBLIC_SITE_URL) {
+    // If NEXT_PUBLIC_SITE_URL is set and not localhost in production, use it
+    if (process.env.NEXT_PUBLIC_SITE_URL && 
+        !(process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SITE_URL.includes('localhost'))) {
       return process.env.NEXT_PUBLIC_SITE_URL
     }
     
-    // For Vercel deployments
+    // For Vercel deployments - check multiple Vercel environment variables
     if (process.env.VERCEL_URL) {
       return `https://${process.env.VERCEL_URL}`
     }
     
-    // For other production environments, try to detect from headers
-    // This is a fallback - you should set NEXT_PUBLIC_SITE_URL in production
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    }
+    
+    // For other production environments
     if (process.env.NODE_ENV === 'production') {
-      // You should replace this with your actual production domain
-      console.warn('NEXT_PUBLIC_SITE_URL not set in production. Please set this environment variable.')
+      console.warn('No production URL detected. Please set NEXT_PUBLIC_SITE_URL environment variable.')
       return 'https://your-production-domain.com'
     }
     
@@ -85,6 +88,16 @@ export async function signInWithGoogle() {
   }
 
   const baseUrl = getBaseUrl()
+  
+  // Debug logging to help troubleshoot
+  console.log('OAuth Redirect Debug:', {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    baseUrl,
+    redirectTo: `${baseUrl}/auth/callback?redirect_to=/dashboard`
+  })
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
