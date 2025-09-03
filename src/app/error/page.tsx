@@ -9,7 +9,13 @@ export default function ErrorPage() {
 
   useEffect(() => {
     const error = searchParams.get('error')
+    const message = searchParams.get('message')
     const errorDescription = searchParams.get('error_description')
+    
+    if (message === 'unauthorized') {
+      setErrorMessage('Access denied. You are not authorized to use this application.')
+      return
+    }
     
     if (error) {
       switch (error) {

@@ -15,6 +15,12 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   }
 
+  // Check if email is authorized before attempting login
+  const authorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL
+  if (!authorizedEmail || data.email.toLowerCase() !== authorizedEmail.toLowerCase()) {
+    redirect('/error?message=unauthorized')
+  }
+
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
@@ -33,6 +39,12 @@ export async function signup(formData: FormData) {
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
+  }
+
+  // Check if email is authorized before attempting signup
+  const authorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL
+  if (!authorizedEmail || data.email.toLowerCase() !== authorizedEmail.toLowerCase()) {
+    redirect('/error?message=unauthorized')
   }
 
   const { error } = await supabase.auth.signUp(data)

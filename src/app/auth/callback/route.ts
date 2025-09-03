@@ -8,7 +8,21 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient()
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (error) {
+      return NextResponse.redirect(new URL(`/error?error=${encodeURIComponent(error.message)}`, request.url))
+    }
+
+    // Check if the user is authorized
+    const authorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL
+    const userEmail = data?.user?.email
+
+    if (!authorizedEmail || !userEmail || userEmail.toLowerCase() !== authorizedEmail.toLowerCase()) {
+      // Sign out the unauthorized user and redirect to error
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/error?message=unauthorized', request.url))
+    }
   }
 
   // URL to redirect to after sign up process completes
