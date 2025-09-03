@@ -59,7 +59,10 @@ export async function signup(formData: FormData) {
 
 export async function signInWithGoogle() {
   console.log('🚀 signInWithGoogle function called!')
-  const supabase = await createClient()
+  
+  try {
+    const supabase = await createClient()
+    console.log('✅ Supabase client created successfully')
 
   // Determine the correct redirect URL based on environment
   const getBaseUrl = () => {
@@ -96,19 +99,39 @@ export async function signInWithGoogle() {
     redirectTo: `${baseUrl}/auth/callback?redirect_to=/dashboard`
   })
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
+    console.log('🔍 About to call signInWithOAuth with:', {
+      provider: 'google',
       redirectTo: `${baseUrl}/auth/callback?redirect_to=/dashboard`
+    })
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${baseUrl}/auth/callback?redirect_to=/dashboard`
+      }
+    })
+
+    console.log('🔍 signInWithOAuth result:', { 
+      success: !!data?.url, 
+      error: error?.message,
+      redirectUrl: data?.url 
+    })
+
+    if (error) {
+      console.error('❌ OAuth error:', error)
+      redirect(`/error?error=${encodeURIComponent(error.message)}`)
+      return
     }
-  })
 
-  if (error) {
-    redirect(`/error?error=${encodeURIComponent(error.message)}`)
-    return
-  }
-
-  if (data.url) {
-    redirect(data.url)
+    if (data.url) {
+      console.log('✅ Redirecting to OAuth URL')
+      redirect(data.url)
+    } else {
+      console.error('❌ No OAuth URL returned')
+      redirect('/error?error=no_oauth_url')
+    }
+  } catch (catchError) {
+    console.error('❌ signInWithGoogle crashed:', catchError)
+    redirect(`/error?error=${encodeURIComponent('OAuth initialization failed')}`)
   }
 }

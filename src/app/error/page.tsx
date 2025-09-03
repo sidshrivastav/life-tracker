@@ -43,6 +43,9 @@ function ErrorContent() {
         case 'no_user_data':
           setErrorMessage('Authentication completed but no user data was received. Please try again.')
           break
+        case 'no_oauth_url':
+          setErrorMessage('OAuth initialization succeeded but no redirect URL was provided. Please try again.')
+          break
         default:
           setErrorMessage(errorDescription || 'Authentication failed. Please try again.')
       }
