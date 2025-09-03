@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../../../utils/supabase/client'
 import { 
   searchFoodEntries,
@@ -18,7 +18,7 @@ export default function FoodPage() {
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const supabase = createClient()
 
   // Form state
@@ -31,28 +31,30 @@ export default function FoodPage() {
     fiber: ''
   })
 
-  useEffect(() => {
-    const loadData = async () => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      if (user) {
-        await loadEntries()
-      }
-      setLoading(false)
-    }
-    loadData()
-  }, [])
-
-  const loadEntries = async (search?: string) => {
+  const loadEntries = useCallback(async (search?: string) => {
     if (!user) return
     
     const data = search && search.trim()
       ? await searchFoodEntries(supabase, user.id, search)
       : await getAllFoodEntries(supabase, user.id)
     setEntries(data)
-  }
+  }, [user, supabase])
+
+  useEffect(() => {
+    const loadData = async () => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    loadData()
+  }, [supabase.auth])
+
+  useEffect(() => {
+    if (user) {
+      loadEntries()
+    }
+  }, [user, loadEntries])
 
   const handleSearch = async () => {
     await loadEntries(searchTerm)

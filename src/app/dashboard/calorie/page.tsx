@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../../../utils/supabase/client'
 import { 
   addCalorieEntry, 
@@ -41,27 +41,7 @@ export default function CaloriePage() {
     entryMode: 'manual' // 'manual' or 'food_item'
   })
 
-  useEffect(() => {
-    const loadData = async () => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      if (user) {
-        await loadEntriesForDate(selectedDate)
-      }
-      setLoading(false)
-    }
-    loadData()
-  }, [])
-
-  useEffect(() => {
-    if (user && selectedDate) {
-      loadEntriesForDate(selectedDate)
-    }
-  }, [selectedDate, user])
-
-  const loadEntriesForDate = async (date: string) => {
+  const loadEntriesForDate = useCallback(async (date: string) => {
     if (!user) return
     
     const data = await getCalorieEntriesByDateWithFood(supabase, user.id, date)
@@ -69,7 +49,23 @@ export default function CaloriePage() {
     
     setEntries(data)
     setDailySummary(summary)
-  }
+  }, [user, supabase])
+
+  useEffect(() => {
+    const loadData = async () => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    loadData()
+  }, [supabase.auth])
+
+  useEffect(() => {
+    if (user && selectedDate) {
+      loadEntriesForDate(selectedDate)
+    }
+  }, [selectedDate, user, loadEntriesForDate])
 
   const searchFoodItems = async (searchTerm: string) => {
     if (!user || !searchTerm.trim()) {
