@@ -19,12 +19,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const supabase = createClient()
     
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      console.log('🔍 Dashboard: Checking user authentication...')
+      
+      // Add a small delay to ensure cookies are set
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      console.log('🔍 Dashboard: User check result:', {
+        hasUser: !!user,
+        userEmail: user?.email,
+        error: error?.message
+      })
+      
       if (!user) {
+        console.log('❌ Dashboard: No user found, redirecting to login')
         router.push('/login')
         return
       }
       
+      console.log('✅ Dashboard: User authenticated, setting up dashboard')
       setUser(user)
       setAuthorized(true)
       setLoading(false)
@@ -34,9 +48,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔍 Dashboard: Auth state changed:', {
+          event,
+          hasSession: !!session,
+          userEmail: session?.user?.email
+        })
+        
         if (event === 'SIGNED_OUT' || !session) {
+          console.log('❌ Dashboard: Auth state change - redirecting to login')
           router.push('/login')
         } else {
+          console.log('✅ Dashboard: Auth state change - user authenticated')
           setUser(session.user)
           setAuthorized(true)
           setLoading(false)

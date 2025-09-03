@@ -69,7 +69,14 @@ export async function GET(request: NextRequest) {
     }
 
     // URL to redirect to after sign up process completes
-    return NextResponse.redirect(new URL(redirectTo, request.url))
+    const finalRedirectUrl = new URL(redirectTo, request.url)
+    console.log('🔍 Final redirect:', {
+      redirectTo,
+      requestUrl: request.url,
+      finalUrl: finalRedirectUrl.toString()
+    })
+    
+    return NextResponse.redirect(finalRedirectUrl)
   } catch (catchError) {
     console.error('❌ Auth callback crashed:', catchError)
     return NextResponse.redirect(new URL(`/error?error=${encodeURIComponent('Authentication failed')}`, request.url))
