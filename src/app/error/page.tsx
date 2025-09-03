@@ -40,6 +40,9 @@ function ErrorContent() {
         case 'temporarily_unavailable':
           setErrorMessage('Service temporarily unavailable. Please try again later.')
           break
+        case 'no_user_data':
+          setErrorMessage('Authentication completed but no user data was received. Please try again.')
+          break
         default:
           setErrorMessage(errorDescription || 'Authentication failed. Please try again.')
       }

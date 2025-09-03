@@ -58,36 +58,33 @@ export async function signup(formData: FormData) {
 }
 
 export async function signInWithGoogle() {
+  console.log('🚀 signInWithGoogle function called!')
   const supabase = await createClient()
 
   // Determine the correct redirect URL based on environment
   const getBaseUrl = () => {
-    // If NEXT_PUBLIC_SITE_URL is set and not localhost in production, use it
-    if (process.env.NEXT_PUBLIC_SITE_URL && 
-        !(process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SITE_URL.includes('localhost'))) {
-      return process.env.NEXT_PUBLIC_SITE_URL
-    }
-    
-    // For Vercel deployments - check multiple Vercel environment variables
-    if (process.env.VERCEL_URL) {
-      return `https://${process.env.VERCEL_URL}`
-    }
-    
-    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    }
-    
-    // For other production environments
+    // In production, prioritize VERCEL_URL over potentially stale NEXT_PUBLIC_SITE_URL
     if (process.env.NODE_ENV === 'production') {
-      console.warn('No production URL detected. Please set NEXT_PUBLIC_SITE_URL environment variable.')
-      return 'https://your-production-domain.com'
+      // Check for Vercel-specific environment variables first
+      if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL.trim()}`
+      }
+      if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.trim()}`
+      }
+      // Only use NEXT_PUBLIC_SITE_URL in production if it's not localhost
+      if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
+        return process.env.NEXT_PUBLIC_SITE_URL.trim()
+      }
+      // Fallback - your actual Vercel domain
+      return 'https://life-tracker-delta-khaki.vercel.app'
     }
     
-    // Development fallback
-    return 'http://localhost:3000'
+    // Development environment
+    return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').trim()
   }
 
-  const baseUrl = getBaseUrl()
+  const baseUrl = getBaseUrl().trim()
   
   // Debug logging to help troubleshoot
   console.log('OAuth Redirect Debug:', {
