@@ -15,11 +15,6 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  // Check if email is authorized before attempting login
-  const authorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL
-  if (!authorizedEmail || data.email.toLowerCase() !== authorizedEmail.toLowerCase()) {
-    redirect('/error?message=unauthorized')
-  }
 
   const { error } = await supabase.auth.signInWithPassword(data)
 
@@ -41,11 +36,6 @@ export async function signup(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  // Check if email is authorized before attempting signup
-  const authorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL
-  if (!authorizedEmail || data.email.toLowerCase() !== authorizedEmail.toLowerCase()) {
-    redirect('/error?message=unauthorized')
-  }
 
   const { error } = await supabase.auth.signUp(data)
 
@@ -66,28 +56,41 @@ export async function signInWithGoogle() {
 
   // Determine the correct redirect URL based on environment
   const getBaseUrl = () => {
+    let baseUrl = ''
+    
     // In production, prioritize VERCEL_URL over potentially stale NEXT_PUBLIC_SITE_URL
     if (process.env.NODE_ENV === 'production') {
       // Check for Vercel-specific environment variables first
       if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL.trim()}`
+        baseUrl = `https://${process.env.VERCEL_URL.trim().replace(/\s+/g, '')}`
+      } else if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        baseUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.trim().replace(/\s+/g, '')}`
+      } else if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
+        baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+      } else {
+        // Fallback - your actual Vercel domain
+        baseUrl = 'https://life-tracker-delta-khaki.vercel.app'
       }
-      if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.trim()}`
-      }
-      // Only use NEXT_PUBLIC_SITE_URL in production if it's not localhost
-      if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
-        return process.env.NEXT_PUBLIC_SITE_URL.trim()
-      }
-      // Fallback - your actual Vercel domain
-      return 'https://life-tracker-delta-khaki.vercel.app'
+    } else {
+      // Development environment
+      baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
     }
     
-    // Development environment
-    return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').trim()
+    // Comprehensive URL cleaning and validation
+    const cleanedUrl = baseUrl.trim().replace(/\s+/g, '')
+    
+    // Ensure the URL starts with http:// or https://
+    if (!cleanedUrl.startsWith('http://') && !cleanedUrl.startsWith('https://')) {
+      console.warn('⚠️ Invalid URL format detected:', cleanedUrl)
+      return process.env.NODE_ENV === 'production' 
+        ? 'https://life-tracker-delta-khaki.vercel.app'
+        : 'http://localhost:3000'
+    }
+    
+    return cleanedUrl
   }
 
-  const baseUrl = getBaseUrl().trim()
+  const baseUrl = getBaseUrl()
   
   // Debug logging to help troubleshoot
   console.log('OAuth Redirect Debug:', {
@@ -95,7 +98,11 @@ export async function signInWithGoogle() {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    // Show raw values with quotes to detect spaces
+    VERCEL_URL_RAW: `"${process.env.VERCEL_URL}"`,
+    NEXT_PUBLIC_SITE_URL_RAW: `"${process.env.NEXT_PUBLIC_SITE_URL}"`,
     baseUrl,
+    baseUrl_RAW: `"${baseUrl}"`,
     redirectTo: `${baseUrl}/auth/callback?redirect_to=/dashboard`
   })
 
@@ -130,7 +137,13 @@ export async function signInWithGoogle() {
       console.error('❌ No OAuth URL returned')
       redirect('/error?error=no_oauth_url')
     }
-  } catch (catchError) {
+  } catch (catchError: unknown) {
+    // Don't treat Next.js redirect errors as actual errors
+    if (typeof catchError === 'object' && catchError !== null && 'digest' in catchError && 
+        typeof (catchError as { digest?: string }).digest === 'string' && 
+        (catchError as { digest: string }).digest.startsWith('NEXT_REDIRECT')) {
+      throw catchError // Re-throw redirect errors to let Next.js handle them
+    }
     console.error('❌ signInWithGoogle crashed:', catchError)
     redirect(`/error?error=${encodeURIComponent('OAuth initialization failed')}`)
   }

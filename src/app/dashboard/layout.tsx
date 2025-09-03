@@ -13,29 +13,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
-  const checkAuthorization = (userEmail: string | undefined) => {
-    const authorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL
-    if (!authorizedEmail || !userEmail) {
-      return false
-    }
-    return userEmail.toLowerCase() === authorizedEmail.toLowerCase()
-  }
 
   useEffect(() => {
+    const supabase = createClient()
+    
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
-        return
-      }
-      
-      // Check if user is authorized
-      const isAuthorized = checkAuthorization(user.email)
-      if (!isAuthorized) {
-        await supabase.auth.signOut()
-        router.push('/error?message=unauthorized')
         return
       }
       
@@ -51,12 +37,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         if (event === 'SIGNED_OUT' || !session) {
           router.push('/login')
         } else {
-          const isAuthorized = checkAuthorization(session.user.email)
-          if (!isAuthorized) {
-            supabase.auth.signOut()
-            router.push('/error?message=unauthorized')
-            return
-          }
           setUser(session.user)
           setAuthorized(true)
           setLoading(false)
@@ -65,9 +45,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     )
 
     return () => subscription.unsubscribe()
-  }, [router, supabase.auth])
+  }, [router])
 
   const handleSignOut = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
   }
 

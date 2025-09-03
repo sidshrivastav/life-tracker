@@ -26,7 +26,6 @@ export default function CaloriePage() {
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([])
   const [foodSearchTerm, setFoodSearchTerm] = useState<string>('')
   const [showFoodResults, setShowFoodResults] = useState<boolean>(false)
-  const supabase = createClient()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -44,22 +43,24 @@ export default function CaloriePage() {
   const loadEntriesForDate = useCallback(async (date: string) => {
     if (!user) return
     
+    const supabase = createClient()
     const data = await getCalorieEntriesByDateWithFood(supabase, user.id, date)
     const summary = await getDailyCalorieSummary(supabase, user.id, date)
     
     setEntries(data)
     setDailySummary(summary)
-  }, [user, supabase])
+  }, [user])
 
   useEffect(() => {
     const loadData = async () => {
       // Get current user
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       setLoading(false)
     }
     loadData()
-  }, [supabase.auth])
+  }, [])
 
   useEffect(() => {
     if (user && selectedDate) {
@@ -74,6 +75,7 @@ export default function CaloriePage() {
       return
     }
     
+    const supabase = createClient()
     const data = await searchFoodEntries(supabase, user.id, searchTerm.trim())
     setFoodEntries(data)
     setShowFoodResults(true)
@@ -113,6 +115,8 @@ export default function CaloriePage() {
 
     console.log('Submitting calorie entry:', entryData)
 
+    const supabase = createClient()
+    
     if (editingEntry) {
       // Update existing entry
       const updated = await updateCalorieEntry(supabase, Number(editingEntry.id), entryData)
@@ -177,6 +181,7 @@ export default function CaloriePage() {
 
   const handleDelete = async (id: bigint) => {
     if (window.confirm('Are you sure you want to delete this calorie entry?')) {
+      const supabase = createClient()
       const success = await deleteCalorieEntry(supabase, Number(id))
       if (success) {
         setEntries(entries.filter(entry => entry.id !== id))
