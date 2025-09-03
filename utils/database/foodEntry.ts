@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface FoodEntry {
   id: number;
@@ -9,6 +9,7 @@ export interface FoodEntry {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  user_id: string; // UUID as string
 }
 
 export interface FoodEntryInsert {
@@ -18,13 +19,15 @@ export interface FoodEntryInsert {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  user_id: string; // UUID as string
 }
 
-// Get all entries
-export const getFoodEntries = async (): Promise<FoodEntry[]> => {
+// Get entries for a specific user
+export const getFoodEntries = async (supabase: SupabaseClient, userId: string): Promise<FoodEntry[]> => {
   const { data: FoodEntries, error } = await supabase
     .from('Food Entries')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -36,7 +39,7 @@ export const getFoodEntries = async (): Promise<FoodEntry[]> => {
 };
 
 // Add a new food entry
-export const addFoodEntry = async (entry: FoodEntryInsert): Promise<FoodEntry | null> => {
+export const addFoodEntry = async (supabase: SupabaseClient, entry: FoodEntryInsert): Promise<FoodEntry | null> => {
   console.log('Adding food entry:', entry);
   
   const { data: FoodEntries, error } = await supabase
@@ -60,7 +63,7 @@ export const addFoodEntry = async (entry: FoodEntryInsert): Promise<FoodEntry | 
 
 
 // Delete a food entry
-export const deleteFoodEntry = async (id: number): Promise<boolean> => {
+export const deleteFoodEntry = async (supabase: SupabaseClient, id: number): Promise<boolean> => {
   const { error } = await supabase
     .from('Food Entries')
     .delete()
@@ -75,7 +78,7 @@ export const deleteFoodEntry = async (id: number): Promise<boolean> => {
 };
 
 // Update a food entry
-export const updateFoodEntry = async (id: number, updates: Partial<FoodEntryInsert>): Promise<FoodEntry | null> => {
+export const updateFoodEntry = async (supabase: SupabaseClient, id: number, updates: Partial<FoodEntryInsert>): Promise<FoodEntry | null> => {
   const { data: FoodEntries, error } = await supabase
     .from('Food Entries')
     .update(updates)
@@ -95,11 +98,12 @@ export const updateFoodEntry = async (id: number, updates: Partial<FoodEntryInse
   return FoodEntries[0];
 };
 
-// Get nutrition totals for all entries
-export const getNutritionTotals = async () => {
+// Get nutrition totals for a specific user
+export const getNutritionTotals = async (supabase: SupabaseClient, userId: string) => {
   const { data: FoodEntries, error } = await supabase
     .from('Food Entries')
-    .select('calories, protein, carbs, fat, fiber');
+    .select('calories, protein, carbs, fat, fiber')
+    .eq('user_id', userId);
 
   if (error) {
     console.error('Error fetching nutrition totals:', error);
@@ -120,16 +124,17 @@ export const getNutritionTotals = async () => {
   return totals;
 };
 
-// Get entries (alias for getAllFoodEntries)
-export const getFoodEntriesRange = async (): Promise<FoodEntry[]> => {
-  return getAllFoodEntries();
+// Get entries for a specific user (alias for getAllFoodEntries)
+export const getFoodEntriesRange = async (supabase: SupabaseClient, userId: string): Promise<FoodEntry[]> => {
+  return getAllFoodEntries(supabase, userId);
 };
 
-// Get total calories for all entries
-export const getTotalCalories = async (): Promise<number> => {
+// Get total calories for a specific user
+export const getTotalCalories = async (supabase: SupabaseClient, userId: string): Promise<number> => {
   const { data: FoodEntries, error } = await supabase
     .from('Food Entries')
-    .select('calories');
+    .select('calories')
+    .eq('user_id', userId);
 
   if (error) {
     console.error('Error fetching total calories:', error);
@@ -139,11 +144,12 @@ export const getTotalCalories = async (): Promise<number> => {
   return FoodEntries.reduce((total, entry) => total + (entry.calories || 0), 0);
 };
 
-// Search food entries by name
-export const searchFoodEntries = async (searchTerm: string): Promise<FoodEntry[]> => {
+// Search food entries by name for a specific user
+export const searchFoodEntries = async (supabase: SupabaseClient, userId: string, searchTerm: string): Promise<FoodEntry[]> => {
   let query = supabase
     .from('Food Entries')
-    .select('*');
+    .select('*')
+    .eq('user_id', userId);
 
   // Only add search filter if searchTerm is provided
   if (searchTerm && searchTerm.trim()) {
@@ -162,13 +168,14 @@ export const searchFoodEntries = async (searchTerm: string): Promise<FoodEntry[]
   return FoodEntries || [];
 };
 
-// Get all food entries (for database view)
-export const getAllFoodEntries = async (): Promise<FoodEntry[]> => {
-  console.log('getAllFoodEntries called');
+// Get all food entries for a specific user
+export const getAllFoodEntries = async (supabase: SupabaseClient, userId: string): Promise<FoodEntry[]> => {
+  console.log('getAllFoodEntries called for user:', userId);
   
   const { data: FoodEntries, error } = await supabase
     .from('Food Entries')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) {

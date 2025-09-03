@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '../../../../utils/supabase/client'
 import { 
   searchFoodEntries,
   getAllFoodEntries,
@@ -17,6 +18,8 @@ export default function FoodPage() {
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const supabase = createClient()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -30,16 +33,24 @@ export default function FoodPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      await loadEntries()
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      
+      if (user) {
+        await loadEntries()
+      }
       setLoading(false)
     }
     loadData()
   }, [])
 
   const loadEntries = async (search?: string) => {
+    if (!user) return
+    
     const data = search && search.trim()
-      ? await searchFoodEntries(search)
-      : await getAllFoodEntries()
+      ? await searchFoodEntries(supabase, user.id, search)
+      : await getAllFoodEntries(supabase, user.id)
     setEntries(data)
   }
 
@@ -49,6 +60,7 @@ export default function FoodPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) return
 
     // Validate required fields
     if (!formData.food_name.trim()) {
@@ -67,14 +79,15 @@ export default function FoodPage() {
       protein: formData.protein ? parseFloat(formData.protein) : undefined,
       carbs: formData.carbs ? parseFloat(formData.carbs) : undefined,
       fat: formData.fat ? parseFloat(formData.fat) : undefined,
-      fiber: formData.fiber ? parseFloat(formData.fiber) : undefined
+      fiber: formData.fiber ? parseFloat(formData.fiber) : undefined,
+      user_id: user.id
     }
 
     console.log('Submitting food entry:', entryData)
 
     if (editingEntry) {
       // Update existing entry
-      const updated = await updateFoodEntry(editingEntry.id, entryData)
+      const updated = await updateFoodEntry(supabase, editingEntry.id, entryData)
       if (updated) {
         setEntries(entries.map(entry => 
           entry.id === editingEntry.id ? updated : entry
@@ -82,7 +95,7 @@ export default function FoodPage() {
       }
     } else {
       // Create new entry
-      const newEntry = await addFoodEntry(entryData)
+      const newEntry = await addFoodEntry(supabase, entryData)
       if (newEntry) {
         setEntries([newEntry, ...entries])
       }
@@ -119,7 +132,7 @@ export default function FoodPage() {
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this food item?')) {
-      const success = await deleteFoodEntry(id)
+      const success = await deleteFoodEntry(supabase, id)
       if (success) {
         setEntries(entries.filter(entry => entry.id !== id))
       }

@@ -8,6 +8,7 @@ export interface FoodEntry {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  user_id: string; // UUID as string
 }
 
 // For form data (before sending to database)
@@ -28,6 +29,7 @@ export interface CreateFoodEntry {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  user_id: string; // UUID as string
 }
 
 // For updating existing food entries
