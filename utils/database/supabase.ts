@@ -2,11 +2,17 @@ import { createClient } from '@supabase/supabase-js'
 
 // Helper function to get the correct site URL for production-only setup
 function getSiteUrl(): string {
-  // Force production-only configuration
-  // Use NEXT_PUBLIC_SITE_URL or fallback to Vercel domain
-  return process.env.NEXT_PUBLIC_SITE_URL || 
-         `https://${process.env.VERCEL_URL}` || 
-         'https://life-tracker-delta-khaki.vercel.app' // fallback to your actual domain
+  // Force production domain to avoid preview URL mismatches
+  const productionUrl = 'https://life-tracker-delta-khaki.vercel.app'
+  
+  // Only use NEXT_PUBLIC_SITE_URL if it matches production domain
+  if (process.env.NEXT_PUBLIC_SITE_URL && 
+      process.env.NEXT_PUBLIC_SITE_URL === productionUrl) {
+    return process.env.NEXT_PUBLIC_SITE_URL
+  }
+  
+  // Always use production domain
+  return productionUrl
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!

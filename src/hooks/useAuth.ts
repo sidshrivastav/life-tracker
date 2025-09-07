@@ -105,15 +105,18 @@ export function useAuth(): AuthHook {
     try {
       console.log('🔍 useAuth: Starting Google sign-in...')
       
-      // Get production base URL
+      // Force production domain to avoid preview URL mismatches
       const getBaseUrl = () => {
-        if (process.env.VERCEL_URL) {
-          return `https://${process.env.VERCEL_URL}`
-        } else if (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.startsWith('https://')) {
+        const productionUrl = 'https://life-tracker-delta-khaki.vercel.app'
+        
+        // Only use NEXT_PUBLIC_SITE_URL if it matches production domain
+        if (process.env.NEXT_PUBLIC_SITE_URL && 
+            process.env.NEXT_PUBLIC_SITE_URL === productionUrl) {
           return process.env.NEXT_PUBLIC_SITE_URL
-        } else {
-          return 'https://life-tracker-delta-khaki.vercel.app'
         }
+        
+        // Always use production domain
+        return productionUrl
       }
 
       const baseUrl = getBaseUrl()

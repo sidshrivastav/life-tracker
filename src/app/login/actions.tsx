@@ -54,33 +54,19 @@ export async function signInWithGoogle() {
     const supabase = await createClient()
     console.log('✅ Supabase client created successfully')
 
-  // Production-only URL configuration
+  // Production-only URL configuration - ALWAYS use production domain
   const getBaseUrl = () => {
-    // Always use production URLs - no localhost support
-    let baseUrl = ''
+    // Force production domain to avoid preview URL mismatches
+    const productionUrl = 'https://life-tracker-delta-khaki.vercel.app'
     
-    // Check for Vercel-specific environment variables first
-    if (process.env.VERCEL_URL) {
-      baseUrl = `https://${process.env.VERCEL_URL.trim().replace(/\s+/g, '')}`
-    } else if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-      baseUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.trim().replace(/\s+/g, '')}`
-    } else if (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.startsWith('https://')) {
-      baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-    } else {
-      // Fallback to your actual Vercel domain
-      baseUrl = 'https://life-tracker-delta-khaki.vercel.app'
+    // Only use NEXT_PUBLIC_SITE_URL if it matches production domain
+    if (process.env.NEXT_PUBLIC_SITE_URL && 
+        process.env.NEXT_PUBLIC_SITE_URL === productionUrl) {
+      return process.env.NEXT_PUBLIC_SITE_URL
     }
     
-    // Comprehensive URL cleaning and validation
-    const cleanedUrl = baseUrl.trim().replace(/\s+/g, '')
-    
-    // Ensure the URL starts with https:// (production only)
-    if (!cleanedUrl.startsWith('https://')) {
-      console.warn('⚠️ Invalid production URL format detected:', cleanedUrl)
-      return 'https://life-tracker-delta-khaki.vercel.app'
-    }
-    
-    return cleanedUrl
+    // Always fallback to production domain to prevent preview URL issues
+    return productionUrl
   }
 
   const baseUrl = getBaseUrl()
